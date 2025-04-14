@@ -7,8 +7,8 @@ def admin():
         if not User.query.filter_by(email='admin@example.com').first():
             admin = User(
                 username='admin',
-                email='admin@demo.com',
-                password=generate_password_hash('adminpassword', method='pbkdf2:sha256:600000'),
+                email='james@gcfc.com',
+                password=generate_password_hash('admin!234', method='pbkdf2:sha256:600000'),
                 is_admin=True
             )
             db.session.add(admin)
