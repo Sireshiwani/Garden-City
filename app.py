@@ -41,29 +41,30 @@ def currency_format(value):
 
 
 # Routes
+class AdminCreationForm(FlaskForm):
+    email = StringField('Email', validators=[validators.DataRequired(), validators.Email()])
+    password = PasswordField('Password', validators=[validators.DataRequired(), validators.Length(min=8)])
+
 @app.route('/create-first-admin', methods=['GET', 'POST'])
 def create_first_admin():
+    # Check if admin already exists
     if User.query.filter_by(is_admin=True).count() > 0:
         return "Admin already exists!", 400
         
-    if request.method == 'POST':
+    form = AdminCreationForm()
+    
+    if form.validate_on_submit():
         admin = User(
             username="admin",
-            email=request.form.get('email'),
-            password=generate_password_hash(request.form.get('password'), method='sha256'),
+            email=form.email.data,
+            password=generate_password_hash(form.password.data, method='sha256'),
             is_admin=True
         )
         db.session.add(admin)
         db.session.commit()
-        return "Admin created!", 201
+        return "Admin created! Please remove this route immediately.", 201
         
-    return '''
-    <form method="POST">
-        Email: <input type="email" name="email"><br>
-        Password: <input type="password" name="password"><br>
-        <button type="submit">Create Admin</button>
-    </form>
-    '''
+    return render_template('create_admin.html', form=form)
     
 @app.route('/')
 def home():
