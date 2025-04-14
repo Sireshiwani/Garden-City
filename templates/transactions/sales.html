@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+
+{% block title %}Add Sale{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8 mx-auto">
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <h4 class="mb-0">Record New Sale</h4>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="amount" class="form-label">Amount</label>
+                            <div class="input-group">
+                                <span class="input-group-text">Ksh</span>
+                                <input type="number" step="100" class="form-control" id="amount" name="amount" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="category" class="form-label">Service Category</label>
+                            <select class="form-select" id="category" name="category" required>
+                                <option value="">Select a category</option>
+                                <option value="Haircut">Haircut</option>
+                                <option value="Shave">Shave</option>
+                                <option value="Beard Trim">Beard Trim</option>
+                                <option value="Coloring">Coloring</option>
+                                <option value="Styling">Styling</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                    <div class="col-md-6 mb-3">
+                            <label for="staff_label" class="form-label">Staff Name</label>
+                            <select class="form-select" id="staff_label" name="staff" required>
+                                <option value="">Select one</option>
+                                {% for staff in all_staff %}
+                                {% if staff.is_active %}
+                                <option value="{{staff.username}}" staff.username >{{staff.username}}</option>
+                                {% endif %}
+                                {% endfor %}
+                            </select>
+                        </div>
+<!--                        <div class="col-md-6 mb-3">-->
+<!--                            <label for="staff_label" class="form-label">Staff Name</label>-->
+<!--                            <textarea class="form-control" id="staff_label" name="staff" rows="1"></textarea>-->
+<!--                        </div>-->
+                        <div class="col-md-6 mb-3">
+                            <label for="customer" class="form-label">Customer Name</label>
+                            <textarea class="form-control" id="customer" name="notes" rows="1"></textarea>
+                        </div>
+                    <div class="col-md-6 mb-3">
+                            <label for="payment" class="form-label">Payment Mode</label>
+                            <select class="form-select" id="payment" name="payment" required>
+                                <option value="">Select an option</option>
+                                <option value="Cash">Cash</option>
+                                <option value="Mpesa">Mpesa</option>
+                                <option value="Visa">Visa</option>
+
+                            </select>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-success">Record Sale</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

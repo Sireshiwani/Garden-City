@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+
+{% block title %}Staff Management{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Staff Management</h2>
+        <a href="{{ url_for('register') }}" class="btn btn-primary">Add New Staff</a>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h5>All Staff Members</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Username</th>
+                            <th>Email</th>
+                            <th>Role</th>
+                            <th>Status</th>
+                            <th>Joined</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for staff in staff_list %}
+                        <tr>
+                            <td>{{ staff.id }}</td>
+                            <td>{{ staff.username }}</td>
+                            <td>{{ staff.email }}</td>
+                            <td>
+                                {% if staff.is_admin %}
+                                    <span class="badge bg-primary">Admin</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">Staff</span>
+                                {% endif %}
+                            </td>
+                            <td>{% if staff.is_active %}
+                                    <span class="badge bg-success">Active</span>
+                                {% else %}
+                                    <span class="badge bg-warning">Inactive</span>
+                                {% endif %} </td>
+                            <td>{{ staff.created_at.strftime('%Y-%m-%d') }}</td>
+                            <td>
+                                <a href="{{ url_for('view_staff', staff_id=staff.id) }}" class="btn btn-sm btn-outline-info">View</a>
+                                <a href="{{ url_for('edit_staff', staff_id=staff.id) }}" class="btn btn-sm btn-outline-warning">Edit</a>
+
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+function confirmDelete(staffId, username) {
+    if (confirm(`Are you sure you want to delete ${username}? This action cannot be undone!`)) {
+        fetch(`/admin/staff/${staffId}/delete`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
+            }
+        }).then(response => {
+            if (response.redirected) {
+                window.location.href = response.url;
+            }
+        });
+    }
+}
+</script>
+{% endblock %}

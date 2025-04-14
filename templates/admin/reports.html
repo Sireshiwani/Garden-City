@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+
+{% block title %}Generate Reports{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <h2 class="mb-4">Generate Reports</h2>
+
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5>Report Options</h5>
+        </div>
+        <div class="card-body">
+            <form method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <label for="report_type" class="form-label">Report Type</label>
+                        <select class="form-select" id="report_type" name="report_type" required>
+                            <option value="">Select a report type</option>
+                            <option value="sales_by_category" {% if report_type =='sales_by_category' %}selected{% endif %}>Sales by Category</option>
+                            <option value="sales_by_staff" {% if report_type =='sales_by_staff' %}selected{% endif %}>Sales by Staff</option>
+                            <option value="expenses_by_category" {% if report_type =='expenses_by_category' %}selected{% endif %}>Expenses by Category</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="start_date" class="form-label">Start Date</label>
+                        <input type="date" class="form-control" id="start_date" name="start_date" value="{{ start_date }}" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="end_date" class="form-label">End Date</label>
+                        <input type="date" class="form-control" id="end_date" name="end_date" value="{{ end_date }}" required>
+                    </div>
+
+                </div>
+                <button type="submit" class="btn btn-primary">Generate Report</button>
+                {% if results %}
+                    <a href="{{ url_for('export_report', type=report_type, start=start_date, end=end_date) }}" class="btn btn-success ms-2">Export to Excel</a>
+                {% endif %}
+            </form>
+        </div>
+    </div>
+
+    {% if results %}
+    <div class="card">
+        <div class="card-header">
+            <h5>Report Results</h5>
+            <p class="mb-0 text-muted">{{ start_date }} to {{ end_date }}</p>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            {% if report_type == 'sales_by_category' %}
+                                <th>Category</th>
+                                <th>Total Sales</th>
+                                <th># of Transactions</th>
+                                <th>Avg. Sale</th>
+                            {% elif report_type == 'sales_by_staff' %}
+                                <th>Staff</th>
+                                <th>Total Sales</th>
+                                <th># of Transactions</th>
+                                <th>Avg. Sale</th>
+                            {% elif report_type == 'expenses_by_category' %}
+                                <th>Category</th>
+                                <th>Total Expenses</th>
+                                <th># of Transactions</th>
+                                <th>Avg. Expense</th>
+                            {% endif %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in results %}
+                        <tr>
+                            <td>{{ item[0] }}</td>
+                            <td>{{ item[1]|currency }}</td>
+                            <td>{{ item[2] }}</td>
+                            <td>{{ (item[1] / item[2])|currency if item[2] > 0 else 0|currency }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

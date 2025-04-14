@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Dashboard{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <h2 class="mb-4">Admin Dashboard</h2>
+
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card text-white bg-primary">
+                <div class="card-body">
+                    <h5 class="card-title">Today's Sales</h5>
+                    <h2 class="card-text">{{ today_sales|currency }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-white bg-success">
+                <div class="card-body">
+                    <h5 class="card-title">Weekly Sales</h5>
+                    <h2 class="card-text">{{ weekly_sales|currency }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-white bg-danger">
+                <div class="card-body">
+                    <h5 class="card-title">Monthly Expenses</h5>
+                    <h2 class="card-text">{{ monthly_expenses|currency }}</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Staff Performance -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5>Top Performing Staff (Last 30 Days)</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Staff</th>
+                            <th>Total Sales</th>
+                            <th># of Transactions</th>
+                            <th>Avg. Sale</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for staff in staff_performance %}
+                        <tr>
+                            <td>{{ staff.username }}</td>
+                            <td>{{ staff.total_sales|currency }}</td>
+                            <td>{{ staff.sales_count }}</td>
+                            <td>{{ (staff.total_sales / staff.sales_count)|currency if staff.sales_count > 0 else 0|currency }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Links -->
+    <div class="row">
+        <div class="col-md-4 mb-3">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h5 class="card-title">Total Sales</h5>
+                    <h3 class="card-text">{{ total_sales|currency }}</h3>
+                    <a href="{{ url_for('generate_reports') }}" class="btn btn-primary mt-2">View Reports</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-3">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h5 class="card-title">Total Expenses</h5>
+                    <h3 class="card-text">{{ total_expenses|currency }}</h3>
+                    <a href="{{ url_for('add_expense') }}" class="btn btn-danger mt-2">Add Expense</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-3">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h5 class="card-title">Manage Staff</h5>
+                    <p class="card-text">Add or manage staff members</p>
+                    <a href="{{ url_for('manage_staff') }}" class="btn btn-info mt-2">Staff Management</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

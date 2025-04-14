@@ -1,0 +1,50 @@
+body {
+    background-color: #f8f9fa;
+    padding-bottom: 60px;
+}
+
+.card {
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    margin-bottom: 20px;
+}
+
+.card-header {
+    font-weight: 600;
+}
+
+.table-responsive {
+    overflow-x: auto;
+}
+
+.badge {
+    font-size: 0.85em;
+}
+
+.form-label {
+    font-weight: 500;
+}
+
+/* Custom colors for different transaction types */
+.bg-sale {
+    background-color: #28a745 !important;
+}
+
+.bg-expense {
+    background-color: #dc3545 !important;
+}
+
+/* Dashboard summary cards */
+.summary-card {
+    transition: transform 0.3s;
+}
+
+.summary-card:hover {
+    transform: translateY(-5px);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .card-body {
+        padding: 1rem;
+    }
+}

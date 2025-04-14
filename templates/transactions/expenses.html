@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block title %}Add Expense{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8 mx-auto">
+        <div class="card">
+            <div class="card-header bg-danger text-white">
+                <h4 class="mb-0">Record New Expense</h4>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="amount" class="form-label">Amount</label>
+                            <div class="input-group">
+                                <span class="input-group-text">Ksh</span>
+                                <input type="number" step="1" class="form-control" id="amount" name="amount" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="category" class="form-label">Expense Category</label>
+                            <select class="form-select" id="category" name="category" required>
+                                <option value="">Select a category</option>
+                                <option value="Rent">Rent</option>
+                                <option value="Salaries">Supplies</option>
+                                <option value="Products">Utilities</option>
+                                <option value="Equipment">Equipment</option>
+                                <option value="Salary Advance">Salaries</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Description</label>
+                        <textarea class="form-control" id="description" name="description" rows="2" required></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-danger">Record Expense</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
