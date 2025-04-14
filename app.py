@@ -11,6 +11,7 @@ from flask_wtf.csrf import CSRFProtect
 import os
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, validators
+from create_admin import admin
 
 
 app = Flask(__name__)
@@ -49,25 +50,27 @@ class AdminCreationForm(FlaskForm):
 
 @app.route('/create-first-admin', methods=['GET', 'POST'])
 def create_first_admin():
-    # Check if admin already exists
-    if User.query.filter_by(is_admin=True).count() > 0:
-        return "Admin already exists!", 400
+    admin()
+
+    # # Check if admin already exists
+    # if User.query.filter_by(is_admin=True).count() > 0:
+    #     return "Admin already exists!", 400
+    #
+    # form = AdminCreationForm()
+    #
+    # if form.validate_on_submit():
+    #     admin = User(
+    #         username="admin",
+    #         email=form.email.data,
+    #         password=generate_password_hash(form.password.data, method='sha256'),
+    #         is_admin=True,
+    #         is_active=True
+    #     )
+    #     db.session.add(admin)
+    #     db.session.commit()
+
         
-    form = AdminCreationForm()
-    
-    if form.validate_on_submit():
-        admin = User(
-            username="admin",
-            email=form.email.data,
-            password=generate_password_hash(form.password.data, method='sha256'),
-            is_admin=True,
-            is_active=True
-        )
-        db.session.add(admin)
-        db.session.commit()
-        return "Admin created! Please remove this route immediately.", 201
-        
-    return render_template('create_admin2.html', form=form)
+
     
 @app.route('/')
 def home():
