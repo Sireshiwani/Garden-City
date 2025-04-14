@@ -1,7 +1,6 @@
 import io
 import click
 from flask import Flask, render_template, redirect, url_for, flash, request, jsonify, send_file
-from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from flask_bootstrap import Bootstrap
 from werkzeug.security import generate_password_hash, check_password_hash
