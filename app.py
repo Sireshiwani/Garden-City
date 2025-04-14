@@ -41,6 +41,30 @@ def currency_format(value):
 
 
 # Routes
+@app.route('/create-first-admin', methods=['GET', 'POST'])
+def create_first_admin():
+    if User.query.filter_by(is_admin=True).count() > 0:
+        return "Admin already exists!", 400
+        
+    if request.method == 'POST':
+        admin = User(
+            username="admin",
+            email=request.form.get('email'),
+            password=generate_password_hash(request.form.get('password'), method='sha256'),
+            is_admin=True
+        )
+        db.session.add(admin)
+        db.session.commit()
+        return "Admin created!", 201
+        
+    return '''
+    <form method="POST">
+        Email: <input type="email" name="email"><br>
+        Password: <input type="password" name="password"><br>
+        <button type="submit">Create Admin</button>
+    </form>
+    '''
+    
 @app.route('/')
 def home():
     if current_user.is_authenticated:
