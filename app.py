@@ -48,6 +48,7 @@ def currency_format(value):
 #     email = StringField('Email', validators=[validators.DataRequired(), validators.Email()])
 #     password = PasswordField('Password', validators=[validators.DataRequired(), validators.Length(min=8)])
 
+# create new admin
 @app.route('/create-first-admin', methods=['GET', 'POST'])
 def create_first_admin():
     admin()
