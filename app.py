@@ -9,6 +9,8 @@ import pandas as pd
 from models import db, User, Sale, Expense
 from flask_wtf.csrf import CSRFProtect
 import os
+from flask_wtf import FlaskForm
+from wtforms import StringField, PasswordField, validators
 
 
 app = Flask(__name__)
