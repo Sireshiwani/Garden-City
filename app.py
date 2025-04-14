@@ -9,11 +9,12 @@ from datetime import datetime, timedelta
 import pandas as pd
 from models import db, User, Sale, Expense
 from flask_wtf.csrf import CSRFProtect
+import os
 
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'your-secret-key-here'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///barbershop.db'
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY')
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("DB_URI", "sqlite:///barbershop.db")
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # Initialize extensions
@@ -586,4 +587,4 @@ def create_admin(email, password):
     print("Admin user created successfully!")
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=False)
