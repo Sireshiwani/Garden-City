@@ -64,7 +64,7 @@ def create_first_admin():
         db.session.commit()
         return "Admin created! Please remove this route immediately.", 201
         
-    return render_template('create_admin.html', form=form)
+    return render_template('create_admin2.html', form=form)
     
 @app.route('/')
 def home():
