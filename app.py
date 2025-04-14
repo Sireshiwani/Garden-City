@@ -51,7 +51,10 @@ def currency_format(value):
 # create new admin
 @app.route('/create-first-admin', methods=['GET', 'POST'])
 def create_first_admin():
-    admin()
+    from create_admin import admin_user
+    admin_user.maim()
+    return "Script executed", 200
+
 
     # # Check if admin already exists
     # if User.query.filter_by(is_admin=True).count() > 0:
