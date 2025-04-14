@@ -60,7 +60,8 @@ def create_first_admin():
             username="admin",
             email=form.email.data,
             password=generate_password_hash(form.password.data, method='sha256'),
-            is_admin=True
+            is_admin=True,
+            is_active=True
         )
         db.session.add(admin)
         db.session.commit()
