@@ -52,7 +52,7 @@ def currency_format(value):
 @app.route('/create-first-admin', methods=['GET', 'POST'])
 def create_first_admin():
     from create_admin import admin_user
-    admin_user.maim()
+    admin_user()
     return "Script executed", 200
 
 
