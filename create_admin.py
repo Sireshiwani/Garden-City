@@ -4,7 +4,7 @@ from werkzeug.security import generate_password_hash
 
 
 # Admin call
-def admin():
+def admin_user():
     with app.app_context():
         if not User.query.filter_by(email='admin@example.com').first():
             admin = User(

@@ -11,7 +11,7 @@ from flask_wtf.csrf import CSRFProtect
 import os
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, validators
-from create_admin import admin
+from create_admin import admin_user
 
 
 app = Flask(__name__)
