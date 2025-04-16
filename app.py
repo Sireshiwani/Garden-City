@@ -435,7 +435,7 @@ def edit_staff(staff_id):
         staff.is_admin = True if request.form.get('is_admin') == 'on' else False
 
         if request.form.get('password'):
-            staff.password = generate_password_hash(request.form.get('password'), method='sha256')
+            staff.password = generate_password_hash(request.form.get('password'), method='pbkdf2:sha256:600000')
 
         # In your edit_staff route
         if User.query.filter(User.email == request.form.get('email'), User.id != staff.id).first():
@@ -610,4 +610,4 @@ def create_admin(email, password):
     print("Admin user created successfully!")
 
 if __name__ == '__main__':
-    app.run(debug=False)
+    app.run(debug=True)
