@@ -44,38 +44,29 @@ def currency_format(value):
 
 
 # Routes
-# class AdminCreationForm(FlaskForm):
-#     email = StringField('Email', validators=[validators.DataRequired(), validators.Email()])
-#     password = PasswordField('Password', validators=[validators.DataRequired(), validators.Length(min=8)])
+class AdminCreationForm(FlaskForm):
+    email = StringField('Email', validators=[validators.DataRequired(), validators.Email()])
+    password = PasswordField('Password', validators=[validators.DataRequired(), validators.Length(min=8)])
 
-# create new admin
+
 @app.route('/create-first-admin', methods=['GET', 'POST'])
 def create_first_admin():
-    from create_admin import admin_user
-    admin_user()
+    if not User.query.filter_by(email='james@gcfc.com').first():
+        admin = User(
+            username='admin',
+            email='james@gcfc.com',
+            password=generate_password_hash('admin!234', method='pbkdf2:sha256:600000'),
+            is_admin=True
+        )
+        db.session.add(admin)
+        db.session.commit()
+        print("Admin user created!")
+    else:
+        print("Admin user already exists!")
     return "Script executed", 200
 
 
-    # # Check if admin already exists
-    # if User.query.filter_by(is_admin=True).count() > 0:
-    #     return "Admin already exists!", 400
-    #
-    # form = AdminCreationForm()
-    #
-    # if form.validate_on_submit():
-    #     admin = User(
-    #         username="admin",
-    #         email=form.email.data,
-    #         password=generate_password_hash(form.password.data, method='sha256'),
-    #         is_admin=True,
-    #         is_active=True
-    #     )
-    #     db.session.add(admin)
-    #     db.session.commit()
 
-        
-
-    
 @app.route('/')
 def home():
     if current_user.is_authenticated:
