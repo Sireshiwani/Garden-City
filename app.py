@@ -66,7 +66,6 @@ def create_first_admin():
     return "Script executed", 200
 
 
-
 @app.route('/')
 def home():
     if current_user.is_authenticated:
