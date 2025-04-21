@@ -63,7 +63,7 @@ def create_first_admin():
         print("Admin user created!")
     else:
         print("Admin user already exists!")
-    return "Script executed", 200
+
 
 
 @app.route('/')
