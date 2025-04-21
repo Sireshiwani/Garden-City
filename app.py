@@ -50,7 +50,9 @@ class AdminCreationForm(FlaskForm):
 
 @app.route('/create-first-admin', methods=['GET', 'POST'])
 def create_first_admin():
-    if request.method == 'POST':
+    from models import User, db
+    admin = User.query.filter_by(email='james@gcfc.com').first()
+    if not admin:
         admin = User(
             username='admin',
             email='james@gcfc.com',
@@ -60,7 +62,9 @@ def create_first_admin():
         )
         db.session.add(admin)
         db.session.commit()
-        print("Admin user created!")
+    db.session.add(admin)
+    db.session.commit()
+    return("Admin Created")
 
 
 
