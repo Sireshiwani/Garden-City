@@ -55,7 +55,8 @@ def create_first_admin():
             username='admin',
             email='james@gcfc.com',
             password=generate_password_hash('admin!234', method='pbkdf2:sha256:600000'),
-            is_admin=True
+            is_admin=True,
+            is_active=True
         )
         db.session.add(admin)
         db.session.commit()
