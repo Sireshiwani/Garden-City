@@ -148,7 +148,6 @@ def add_sale():
                              description=f"No user named '{staff_name}'."
                              )
 
-        print(customer_name)
         new_sale = Sale(
             amount=amount,
             category=category,
@@ -592,25 +591,6 @@ def get_col_widths(df):
 def inject_now():
     return {'now': datetime.utcnow()}
 
-
-@app.cli.command("create-admin")
-@click.argument("email")
-@click.argument("password")
-def create_admin(email, password):
-    """Create an admin user."""
-    if User.query.filter_by(email=email).first():
-        print("User already exists!")
-        return
-
-    admin = User(
-        username="admin",
-        email='admin@demo.com',
-        password=generate_password_hash(password, method='Sha256'),
-        is_admin=True
-    )
-    db.session.add(admin)
-    db.session.commit()
-    print("Admin user created successfully!")
 
 if __name__ == '__main__':
     app.run(debug=False)
