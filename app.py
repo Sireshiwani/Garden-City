@@ -62,9 +62,8 @@ def create_first_admin():
         )
         db.session.add(admin)
         db.session.commit()
-    db.session.add(admin)
-    db.session.commit()
-    return("Admin Created")
+
+    return ("Admin Created")
 
 
 
