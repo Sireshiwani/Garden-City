@@ -24,6 +24,11 @@ Bootstrap(app)
 csrf = CSRFProtect(app)
 login_manager = LoginManager(app)
 login_manager.login_view = 'auth.login'
+login_manager.init_app(app)
+login_manager.session_protection = "strong"  # Prevents session fixation
+
+# Optional: Change default remember me duration
+login_manager.remember_cookie_duration = timedelta(minutes=10)
 
 
 @login_manager.user_loader
@@ -40,6 +45,18 @@ with app.app_context():
 @app.template_filter('currency')
 def currency_format(value):
     return f"Ksh{value:,.2f}"
+
+
+def validate_entry_date(date_str):
+    try:
+        entry_date = datetime.strptime(date_str, '%d-%m-%Y')
+        if entry_date > datetime.utcnow():
+            flash("Future dates are not allowed", 'danger')
+            return None
+        return entry_date
+    except ValueError:
+        flash("Invalid date format", 'danger')
+        return None
 
 
 # Routes
@@ -136,13 +153,21 @@ def logout():
 @login_required
 def add_sale():
     all_staff = User.query.all()
+    sale_date = datetime.utcnow().strftime('%Y-%m-%d')
+    # datetime = datetime.utcnow().strftime('%Y-%m-%d')
 
     if request.method == 'POST':
+        try:
+            sale_date = validate_entry_date(datetime.strptime(request.form.get('sale_date'), '%d-%m-%Y'))
+        except ValueError:
+            sale_date = datetime.utcnow()
+
         amount = float(request.form.get('amount'))
         category = request.form.get('category')
         customer_name = request.form.get('notes')
         staff_name = request.form.get('staff')
         payment_input = request.form.get('payment')
+        date = sale_date
         user = db.one_or_404(db.select(User).filter_by(username=staff_name),
                              description=f"No user named '{staff_name}'."
                              )
@@ -152,14 +177,16 @@ def add_sale():
             category=category,
             staff_id=user.id,
             customer_name=customer_name,
-            payment_mode=payment_input
+            payment_mode=payment_input,
+            date=date
         )
+        print(date)
         db.session.add(new_sale)
         db.session.commit()
         flash('Sale recorded successfully!', 'success')
         return redirect(url_for('add_sale'))
 
-    return render_template('transactions/sales.html', all_staff=all_staff)
+    return render_template('transactions/sales.html', all_staff=all_staff, date=sale_date)
 
 
 # Expenses routes
@@ -170,8 +197,14 @@ def add_expense():
     #     flash('Only admins can add expenses', 'danger')
     #     return redirect(url_for('home'))
 
-
+    expense_date = datetime.utcnow().strftime('%d-%m-%Y')
     if request.method == 'POST':
+        if request.method == 'POST':
+            try:
+                expense_date = validate_entry_date(datetime.strptime(request.form.get('expense_date'), '%d-%m-%Y'))
+            except ValueError:
+                expense_date = datetime.utcnow()
+
         amount = float(request.form.get('amount'))
         category = request.form.get('category')
         description = request.form.get('description')
@@ -179,14 +212,15 @@ def add_expense():
         new_expense = Expense(
             amount=amount,
             category=category,
-            description=description
+            description=description,
+            date = expense_date
         )
         db.session.add(new_expense)
         db.session.commit()
         flash('Expense recorded successfully!', 'success')
         return redirect(url_for('add_expense'))
 
-    return render_template('transactions/expenses.html')
+    return render_template('transactions/expenses.html', date=expense_date)
 
 
 # Admin routes
@@ -592,4 +626,4 @@ def inject_now():
 
 
 if __name__ == '__main__':
-    app.run(debug=False)
+    app.run(debug=True)
