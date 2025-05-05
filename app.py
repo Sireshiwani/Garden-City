@@ -193,9 +193,9 @@ def add_sale():
 @app.route('/expenses/add', methods=['GET', 'POST'])
 @login_required
 def add_expense():
-    # if not current_user.is_admin:
-    #     flash('Only admins can add expenses', 'danger')
-    #     return redirect(url_for('home'))
+    if not current_user.is_admin or current_user.id != 3:
+        flash('Only admins can add expenses', 'danger')
+        return redirect(url_for('home'))
 
     expense_date = datetime.utcnow().strftime('%d-%m-%Y')
     if request.method == 'POST':
