@@ -1,6 +1,5 @@
 import io
-import click
-from flask import Flask, render_template, redirect, url_for, flash, request, jsonify, send_file
+from flask import Flask, render_template, redirect, url_for, flash, request, jsonify, send_file, session, make_response
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from flask_bootstrap import Bootstrap
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -11,6 +10,8 @@ from flask_wtf.csrf import CSRFProtect
 import os
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, validators
+import csv
+from forms import SalesQueryForm
 
 
 app = Flask(__name__)
@@ -18,12 +19,27 @@ app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY')
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("DB_URI", "sqlite:///barbershop.db")
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
+
 # Initialize extensions
 db.init_app(app)
 Bootstrap(app)
 csrf = CSRFProtect(app)
 login_manager = LoginManager(app)
 login_manager.login_view = 'auth.login'
+login_manager.init_app(app)
+
+
+# Set session lifetime (e.g., 30 minutes of inactivity)
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=3)
+
+
+@app.before_request
+def before_request():
+    # Reset session timeout on each request
+    session.permanent = True
+    session.modified = True  # Mark session as modified to extend timeout
+
+app.config['SESSION_PERMANENT'] = False  # Session ends when browser closes
 
 
 @login_manager.user_loader
@@ -40,6 +56,18 @@ with app.app_context():
 @app.template_filter('currency')
 def currency_format(value):
     return f"Ksh{value:,.2f}"
+
+
+def validate_entry_date(date_str):
+    try:
+        entry_date = datetime.strptime(date_str, '%d-%m-%Y')
+        if entry_date > datetime.utcnow():
+            flash("Future dates are not allowed", 'danger')
+            return None
+        return entry_date
+    except ValueError:
+        flash("Invalid date format", 'danger')
+        return None
 
 
 # Routes
@@ -62,10 +90,7 @@ def create_first_admin():
         )
         db.session.add(admin)
         db.session.commit()
-    db.session.add(admin)
-    db.session.commit()
-    return("Admin Created")
-
+    return ("Admin Created")
 
 
 @app.route('/')
@@ -73,7 +98,7 @@ def home():
     if current_user.is_authenticated:
         if current_user.is_admin:
             return redirect(url_for('admin_dashboard'))
-        return redirect(url_for('add_sale'))
+        return redirect(url_for('my_sales'))
     return redirect(url_for('login'))
 
 
@@ -123,6 +148,12 @@ def register():
 
     return render_template('auth/register.html')
 
+@app.route('/ping')
+def ping():
+    # Just updates session by accessing it
+    session.modified = True
+    return '', 204
+
 
 @app.route('/logout')
 @login_required
@@ -137,43 +168,54 @@ def logout():
 @login_required
 def add_sale():
     all_staff = User.query.all()
+    sale_date = datetime.utcnow().strftime('%Y-%m-%d')
+    # datetime = datetime.utcnow().strftime('%Y-%m-%d')
 
     if request.method == 'POST':
+        try:
+            sale_date = validate_entry_date(datetime.strptime(request.form.get('sale_date'), '%d-%m-%Y'))
+        except ValueError:
+            sale_date = datetime.utcnow()
+
         amount = float(request.form.get('amount'))
         category = request.form.get('category')
         customer_name = request.form.get('notes')
         staff_name = request.form.get('staff')
         payment_input = request.form.get('payment')
+        date = sale_date
         user = db.one_or_404(db.select(User).filter_by(username=staff_name),
                              description=f"No user named '{staff_name}'."
                              )
 
-        print(customer_name)
         new_sale = Sale(
             amount=amount,
             category=category,
             staff_id=user.id,
             customer_name=customer_name,
-            payment_mode=payment_input
+            payment_mode=payment_input,
+            date=date
         )
+        print(date)
         db.session.add(new_sale)
         db.session.commit()
         flash('Sale recorded successfully!', 'success')
         return redirect(url_for('add_sale'))
 
-    return render_template('transactions/sales.html', all_staff=all_staff)
+    return render_template('transactions/sales.html', all_staff=all_staff, date=sale_date)
 
 
 # Expenses routes
 @app.route('/expenses/add', methods=['GET', 'POST'])
 @login_required
 def add_expense():
-    # if not current_user.is_admin:
-    #     flash('Only admins can add expenses', 'danger')
-    #     return redirect(url_for('home'))
-
-
+    expense_date = datetime.utcnow().strftime('%d-%m-%Y')
     if request.method == 'POST':
+        if request.method == 'POST':
+            try:
+                expense_date = validate_entry_date(datetime.strptime(request.form.get('expense_date'), '%d-%m-%Y'))
+            except ValueError:
+                expense_date = datetime.utcnow()
+
         amount = float(request.form.get('amount'))
         category = request.form.get('category')
         description = request.form.get('description')
@@ -181,14 +223,15 @@ def add_expense():
         new_expense = Expense(
             amount=amount,
             category=category,
-            description=description
+            description=description,
+            date = expense_date
         )
         db.session.add(new_expense)
         db.session.commit()
         flash('Expense recorded successfully!', 'success')
         return redirect(url_for('add_expense'))
 
-    return render_template('transactions/expenses.html')
+    return render_template('transactions/expenses.html', date=expense_date)
 
 
 # Admin routes
@@ -244,6 +287,87 @@ def manage_staff():
 
     staff_list = User.query.all()
     return render_template('admin/staff.html', staff_list=staff_list)
+
+
+@app.route('/my-sales', methods=['GET', 'POST'])
+@login_required
+def my_sales():
+    form = SalesQueryForm()
+
+    # Default to last 30 days
+    start_date = datetime.utcnow() - timedelta(days=30)
+    end_date = datetime.utcnow()
+
+    if form.validate_on_submit():
+        start_date = form.start_date.data
+        end_date = form.end_date.data
+
+    # Query only current user's sales in date range
+    sales = Sale.query.filter(
+        Sale.staff_id == current_user.id,
+        Sale.date >= start_date,
+        Sale.date <= end_date
+    ).order_by(Sale.date.desc()).all()
+
+    # Calculate total
+    total_sales = sum(sale.amount for sale in sales)
+
+    return render_template('staff/my_sales.html',
+                           sales=sales,
+                           total_sales=total_sales,
+                           form=form,
+                           start_date=start_date,
+                           end_date=end_date)
+
+
+@app.route('/export-my-sales')
+@login_required
+def export_my_sales():
+    # Get the same date filters from request args
+    try:
+        start_date = datetime.strptime(request.args.get('start'), '%Y-%m-%d')
+        end_date = datetime.strptime(request.args.get('end'), '%Y-%m-%d')
+    except (TypeError, ValueError):
+        # Default to last 30 days if no dates provided
+        end_date = datetime.utcnow()
+        start_date = end_date - timedelta(days=30)
+
+    # Query the sales data (same as my_sales route)
+    sales = Sale.query.filter(
+        Sale.staff_id == current_user.id,
+        Sale.date >= start_date,
+        Sale.date <= end_date
+    ).order_by(Sale.date.desc()).all()
+
+    # Create CSV in memory
+    output = io.StringIO()
+    writer = csv.writer(output)
+
+    # Write header
+    writer.writerow([
+        'Date',
+        'Amount',
+        'Service Category',
+        'Notes'
+    ])
+
+    # Write data rows
+    for sale in sales:
+        writer.writerow([
+            sale.date.strftime('%Y-%m-%d %H:%M'),
+            sale.amount,
+            sale.category,
+            sale.notes or ''
+        ])
+
+    # Prepare response
+    response = make_response(output.getvalue())
+    response.headers["Content-Disposition"] = (
+        f"attachment; filename=my_sales_"
+        f"{start_date.date()}_to_{end_date.date()}.csv"
+    )
+    response.headers["Content-type"] = "text/csv"
+    return response
 
 
 @app.route('/admin/reports', methods=['GET', 'POST'])
@@ -463,8 +587,8 @@ def staff_sales_report():
     start_date = end_date - timedelta(days=30)
 
     if request.method == 'POST':
-        start_date = datetime.strptime(request.form.get('start_date'), '%Y-%m-%d')
-        end_date = datetime.strptime(request.form.get('end_date'), '%Y-%m-%d')
+        start_date = datetime.strptime(request.form.get('start_date'), '%Y-%b-%d')
+        end_date = datetime.strptime(request.form.get('end_date'), '%Y-%b-%d')
         staff_id = request.form.get('staff_id')
 
     # Base query
@@ -505,8 +629,8 @@ def export_staff_sales():
     if not current_user.is_admin:
         return jsonify({'error': 'Unauthorized'}), 403
 
-    start_date = datetime.strptime(request.args.get('start'), '%Y-%m-%d')
-    end_date = datetime.strptime(request.args.get('end'), '%Y-%m-%d')
+    start_date = datetime.strptime(request.args.get('start'), '%d-%b-%Y')
+    end_date = datetime.strptime(request.args.get('end'), '%d-%b-%Y')
     staff_id = request.args.get('staff_id', 'all')
 
     # Same query as the report
@@ -583,7 +707,6 @@ def export_staff_sales():
         download_name=f'{filename}.xlsx'
     )
 
-
 def get_col_widths(df):
     return [max([len(str(s)) for s in df[col].values] + [len(str(col))]) for col in df.columns]
 
@@ -593,24 +716,5 @@ def inject_now():
     return {'now': datetime.utcnow()}
 
 
-@app.cli.command("create-admin")
-@click.argument("email")
-@click.argument("password")
-def create_admin(email, password):
-    """Create an admin user."""
-    if User.query.filter_by(email=email).first():
-        print("User already exists!")
-        return
-
-    admin = User(
-        username="admin",
-        email='admin@demo.com',
-        password=generate_password_hash(password, method='Sha256'),
-        is_admin=True
-    )
-    db.session.add(admin)
-    db.session.commit()
-    print("Admin user created successfully!")
-
 if __name__ == '__main__':
-    app.run(debug=False)
+    app.run(debug=True)
