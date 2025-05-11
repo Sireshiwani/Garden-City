@@ -1,5 +1,5 @@
 import io
-from flask import Flask, render_template, redirect, url_for, flash, request, jsonify, send_file, session, make_response
+from flask import Flask, render_template, redirect, url_for, flash, request, jsonify, send_file, session
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from flask_bootstrap import Bootstrap
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -10,8 +10,6 @@ from flask_wtf.csrf import CSRFProtect
 import os
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, validators
-import csv
-from forms import SalesQueryForm
 
 
 app = Flask(__name__)
@@ -76,29 +74,13 @@ class AdminCreationForm(FlaskForm):
     password = PasswordField('Password', validators=[validators.DataRequired(), validators.Length(min=8)])
 
 
-@app.route('/create-first-admin', methods=['GET', 'POST'])
-def create_first_admin():
-    from models import User, db
-    admin = User.query.filter_by(email='james@gcfc.com').first()
-    if not admin:
-        admin = User(
-            username='admin',
-            email='james@gcfc.com',
-            password=generate_password_hash('admin!234', method='pbkdf2:sha256:600000'),
-            is_admin=True,
-            is_active=True
-        )
-        db.session.add(admin)
-        db.session.commit()
-    return ("Admin Created")
-
 
 @app.route('/')
 def home():
     if current_user.is_authenticated:
         if current_user.is_admin:
             return redirect(url_for('admin_dashboard'))
-        return redirect(url_for('my_sales'))
+        return redirect(url_for('add_sale'))
     return redirect(url_for('login'))
 
 
@@ -208,6 +190,10 @@ def add_sale():
 @app.route('/expenses/add', methods=['GET', 'POST'])
 @login_required
 def add_expense():
+    if not current_user.is_admin or current_user.id != 3:
+        flash('Only admins can add expenses', 'danger')
+        return redirect(url_for('home'))
+
     expense_date = datetime.utcnow().strftime('%d-%m-%Y')
     if request.method == 'POST':
         if request.method == 'POST':
@@ -287,87 +273,6 @@ def manage_staff():
 
     staff_list = User.query.all()
     return render_template('admin/staff.html', staff_list=staff_list)
-
-
-@app.route('/my-sales', methods=['GET', 'POST'])
-@login_required
-def my_sales():
-    form = SalesQueryForm()
-
-    # Default to last 30 days
-    start_date = datetime.utcnow() - timedelta(days=30)
-    end_date = datetime.utcnow()
-
-    if form.validate_on_submit():
-        start_date = form.start_date.data
-        end_date = form.end_date.data
-
-    # Query only current user's sales in date range
-    sales = Sale.query.filter(
-        Sale.staff_id == current_user.id,
-        Sale.date >= start_date,
-        Sale.date <= end_date
-    ).order_by(Sale.date.desc()).all()
-
-    # Calculate total
-    total_sales = sum(sale.amount for sale in sales)
-
-    return render_template('staff/my_sales.html',
-                           sales=sales,
-                           total_sales=total_sales,
-                           form=form,
-                           start_date=start_date,
-                           end_date=end_date)
-
-
-@app.route('/export-my-sales')
-@login_required
-def export_my_sales():
-    # Get the same date filters from request args
-    try:
-        start_date = datetime.strptime(request.args.get('start'), '%Y-%m-%d')
-        end_date = datetime.strptime(request.args.get('end'), '%Y-%m-%d')
-    except (TypeError, ValueError):
-        # Default to last 30 days if no dates provided
-        end_date = datetime.utcnow()
-        start_date = end_date - timedelta(days=30)
-
-    # Query the sales data (same as my_sales route)
-    sales = Sale.query.filter(
-        Sale.staff_id == current_user.id,
-        Sale.date >= start_date,
-        Sale.date <= end_date
-    ).order_by(Sale.date.desc()).all()
-
-    # Create CSV in memory
-    output = io.StringIO()
-    writer = csv.writer(output)
-
-    # Write header
-    writer.writerow([
-        'Date',
-        'Amount',
-        'Service Category',
-        'Notes'
-    ])
-
-    # Write data rows
-    for sale in sales:
-        writer.writerow([
-            sale.date.strftime('%Y-%m-%d %H:%M'),
-            sale.amount,
-            sale.category,
-            sale.notes or ''
-        ])
-
-    # Prepare response
-    response = make_response(output.getvalue())
-    response.headers["Content-Disposition"] = (
-        f"attachment; filename=my_sales_"
-        f"{start_date.date()}_to_{end_date.date()}.csv"
-    )
-    response.headers["Content-type"] = "text/csv"
-    return response
 
 
 @app.route('/admin/reports', methods=['GET', 'POST'])
@@ -587,8 +492,8 @@ def staff_sales_report():
     start_date = end_date - timedelta(days=30)
 
     if request.method == 'POST':
-        start_date = datetime.strptime(request.form.get('start_date'), '%Y-%b-%d')
-        end_date = datetime.strptime(request.form.get('end_date'), '%Y-%b-%d')
+        start_date = datetime.strptime(request.form.get('start_date'), '%Y-%m-%d')
+        end_date = datetime.strptime(request.form.get('end_date'), '%Y-%m-%d')
         staff_id = request.form.get('staff_id')
 
     # Base query
@@ -629,8 +534,8 @@ def export_staff_sales():
     if not current_user.is_admin:
         return jsonify({'error': 'Unauthorized'}), 403
 
-    start_date = datetime.strptime(request.args.get('start'), '%d-%b-%Y')
-    end_date = datetime.strptime(request.args.get('end'), '%d-%b-%Y')
+    start_date = datetime.strptime(request.args.get('start'), '%Y-%m-%d')
+    end_date = datetime.strptime(request.args.get('end'), '%Y-%m-%d')
     staff_id = request.args.get('staff_id', 'all')
 
     # Same query as the report
@@ -707,6 +612,7 @@ def export_staff_sales():
         download_name=f'{filename}.xlsx'
     )
 
+
 def get_col_widths(df):
     return [max([len(str(s)) for s in df[col].values] + [len(str(col))]) for col in df.columns]
 
@@ -717,4 +623,4 @@ def inject_now():
 
 
 if __name__ == '__main__':
-    app.run(debug=False)
+    app.run(debug=True)
