@@ -76,23 +76,6 @@ class AdminCreationForm(FlaskForm):
     password = PasswordField('Password', validators=[validators.DataRequired(), validators.Length(min=8)])
 
 
-@app.route('/create-first-admin', methods=['GET', 'POST'])
-def create_first_admin():
-    from models import User, db
-    admin = User.query.filter_by(email='james@gcfc.com').first()
-    if not admin:
-        admin = User(
-            username='admin',
-            email='james@gcfc.com',
-            password=generate_password_hash('admin!234', method='pbkdf2:sha256:600000'),
-            is_admin=True,
-            is_active=True
-        )
-        db.session.add(admin)
-        db.session.commit()
-
-    return ("Admin Created")
-
 
 @app.route('/test-db')
 def test_db():
