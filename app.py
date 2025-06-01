@@ -16,9 +16,9 @@ import csv
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY')
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("DB_URI")
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("DB_URI", "sqlite:///barbershop.db")
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-# , "sqlite:///barbershop.db"
+
 
 # Initialize extensions
 db.init_app(app)
