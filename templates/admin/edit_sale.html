@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Edit Sale Record</h2>
+    <form method="POST">
+        {{ form.hidden_tag() }}
+
+        <div class="mb-3">
+            {{ form.amount.label(class="form-label") }}
+            {{ form.amount(class="form-control") }}
+            {% if form.amount.errors %}
+                <div class="invalid-feedback d-block">
+                    {{ form.amount.errors[0] }}
+                </div>
+            {% endif %}
+        </div>
+
+        <div class="mb-3">
+            {{ form.category.label(class="form-label") }}
+            {{ form.category(class="form-select") }}
+            {% if form.category.errors %}
+                <div class="invalid-feedback d-block">
+                    {{ form.category.errors[0] }}
+                </div>
+            {% endif %}
+        </div>
+
+        <div class="mb-3">
+            {{ form.date.label(class="form-label") }}
+            {{ form.date(class="form-control") }}
+            {% if form.date.errors %}
+                <div class="invalid-feedback d-block">
+                    {{ form.date.errors[0] }}
+                </div>
+            {% endif %}
+        </div>
+
+        <div class="mb-3">
+            {{ form.customer_name.label(class="form-label") }}
+            {{ form.customer_name(class="form-control", rows=3) }}
+        </div>
+
+        <button type="submit" class="btn btn-primary">Update Sale</button>
+        <a href="{{ url_for('staff_sales_report') }}" class="btn btn-secondary">Cancel</a>
+    </form>
+</div>
+{% endblock %}

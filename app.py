@@ -9,7 +9,7 @@ from models import db, User, Sale, Expense
 from flask_wtf.csrf import CSRFProtect
 import os
 from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, validators
+from wtforms import StringField, PasswordField, validators, FloatField, DateTimeLocalField, TextAreaField
 from forms import SalesQueryForm
 import csv
 
@@ -25,12 +25,13 @@ db.init_app(app)
 Bootstrap(app)
 csrf = CSRFProtect(app)
 login_manager = LoginManager(app)
-login_manager.login_view = 'auth.login'
+login_manager.login_view = 'login'
 login_manager.init_app(app)
 
 
-# Set session lifetime (e.g., 30 minutes of inactivity)
+# Set session lifetime (e.g., 3 minutes of inactivity)
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=3)
+
 
 
 @app.before_request
@@ -70,11 +71,36 @@ def validate_entry_date(date_str):
         return None
 
 
+# Edit Sale Form
+class EditSaleForm(FlaskForm):
+    amount = FloatField('Amount', validators=[validators.InputRequired()])
+    category = StringField('Category', validators=[validators.InputRequired()])
+    date = DateTimeLocalField('Date', format='%Y-%m-%dT%H:%M', validators=[validators.InputRequired()])
+    customer_name = TextAreaField('Customer Name')
+
+
 # Routes
 class AdminCreationForm(FlaskForm):
     email = StringField('Email', validators=[validators.DataRequired(), validators.Email()])
     password = PasswordField('Password', validators=[validators.DataRequired(), validators.Length(min=8)])
 
+
+@app.route('/create-first-admin', methods=['GET', 'POST'])
+def create_first_admin():
+    from models import User, db
+    admin = User.query.filter_by(email='james@gcfc.com').first()
+    if not admin:
+        admin = User(
+            username='admin',
+            email='james@gcfc.com',
+            password=generate_password_hash('admin!234', method='pbkdf2:sha256:600000'),
+            is_admin=True,
+            is_active=True
+        )
+        db.session.add(admin)
+        db.session.commit()
+
+    return ("Admin Created")
 
 
 @app.route('/test-db')
@@ -257,8 +283,8 @@ def admin_dashboard():
     today_sales = db.session.query(db.func.sum(Sale.amount)).filter(
         db.func.date(Sale.date) == today
     ).scalar() or 0
-    weekly_sales = db.session.query(db.func.sum(Sale.amount)).filter(
-        db.func.date(Sale.date) >= week_ago
+    monthly_sales = db.session.query(db.func.sum(Sale.amount)).filter(
+        db.func.date(Sale.date) >= month_ago
     ).scalar() or 0
 
     # Expenses data
@@ -277,7 +303,7 @@ def admin_dashboard():
     return render_template('admin/dashboard.html',
                            total_sales=total_sales,
                            today_sales=today_sales,
-                           weekly_sales=weekly_sales,
+                           monthly_sales=monthly_sales,
                            total_expenses=total_expenses,
                            monthly_expenses=monthly_expenses,
                            staff_performance=staff_performance)
@@ -518,6 +544,42 @@ def export_report():
     )
 
 
+@app.route('/admin/edit-sale/<int:sale_id>', methods=['GET', 'POST'])
+@login_required
+def edit_sale(sale_id):
+    if not current_user.is_admin:
+        flash('Unauthorized access', 'danger')
+        return redirect(url_for('home'))
+
+    sale = Sale.query.get_or_404(sale_id)
+    form = EditSaleForm(obj=sale)  # Pre-populate form with sale data
+
+    if form.validate_on_submit():
+        try:
+            form.populate_obj(sale)  # Update sale with form data
+            db.session.commit()
+            flash('Sale updated successfully!', 'success')
+            return redirect(url_for('staff_sales_report'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error updating sale: {str(e)}', 'danger')
+
+    return render_template('admin/edit_sale.html', form=form, sale=sale)
+
+
+@app.route('/admin/delete-sale/<int:sale_id>', methods=['POST'])
+@login_required
+def delete_sale(sale_id):
+    if not current_user.is_admin:
+        return jsonify({'error': 'Unauthorized'}), 403
+
+    sale = Sale.query.get_or_404(sale_id)
+    db.session.delete(sale)
+    db.session.commit()
+    flash('Sale deleted successfully', 'success')
+    return redirect(url_for('staff_sales_report'))
+
+
 @app.route('/admin/staff/<int:staff_id>')
 @login_required
 def view_staff(staff_id):
@@ -592,6 +654,10 @@ def staff_sales_report():
     end_date = datetime.utcnow()
     start_date = end_date - timedelta(days=30)
 
+    # Dates for edit/delete
+    edit_end_date = end_date - timedelta(days=3)
+
+
     if request.method == 'POST':
         start_date = datetime.strptime(request.form.get('start_date'), '%Y-%m-%d')
         end_date = datetime.strptime(request.form.get('end_date'), '%Y-%m-%d')
@@ -603,7 +669,8 @@ def staff_sales_report():
         Sale.date.label('sale_date'),
         Sale.amount,
         Sale.category,
-        Sale.customer_name
+        Sale.customer_name,
+        Sale.id
     ).join(User)
 
     # Apply filters
@@ -626,7 +693,8 @@ def staff_sales_report():
                            staff_list=staff_list,
                            start_date=start_date.date(),
                            end_date=end_date.date(),
-                           selected_staff=request.form.get('staff_id', 'all'))
+                           selected_staff=request.form.get('staff_id', 'all'),
+                           edit_end_date=edit_end_date)
 
 
 @app.route('/admin/reports/export-staff-sales')
@@ -724,4 +792,4 @@ def inject_now():
 
 
 if __name__ == '__main__':
-    app.run(debug=False)
+    app.run(debug=True)
