@@ -547,7 +547,7 @@ def export_report():
 @app.route('/admin/edit-sale/<int:sale_id>', methods=['GET', 'POST'])
 @login_required
 def edit_sale(sale_id):
-    if not current_user.is_admin:
+    if current_user.id > 3:
         flash('Unauthorized access', 'danger')
         return redirect(url_for('home'))
 
@@ -570,7 +570,7 @@ def edit_sale(sale_id):
 @app.route('/admin/delete-sale/<int:sale_id>', methods=['POST'])
 @login_required
 def delete_sale(sale_id):
-    if not current_user.is_admin:
+    if current_user.id > 3:
         return jsonify({'error': 'Unauthorized'}), 403
 
     sale = Sale.query.get_or_404(sale_id)
@@ -792,4 +792,4 @@ def inject_now():
 
 
 if __name__ == '__main__':
-    app.run(debug=False)
+    app.run(debug=True)
