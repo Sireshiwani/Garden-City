@@ -72,15 +72,7 @@ def validate_entry_date(date_str):
         flash("Invalid date format", 'danger')
         return None
 
-# Connect to Postgres DB
-conn = psycopg2.connect(
-    host=os.environ.get('db_host'),
-    port='25060',
-    username=os.environ.get('db_username'),
-    password=os.environ.get('db_password'),
-    database='gcfc-db',
-    sslmode='require',
-)
+
 
 # Edit Sale Form
 class EditSaleForm(FlaskForm):
