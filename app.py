@@ -22,10 +22,10 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 
 conn = psycopg2.connect(
-    host='app-c7bb153b-0040-4079-97e0-cb5d69e5a3c0-do-user-1772022-0.d.db.ondigitalocean.com',
+    host=os.environ.get('db_host'),
     port='25060',
     username='gcfc-db',
-    password='AVNS_xRNJdkrcUIWSGsUkdwL',
+    password=os.environ.get('db_password'),
     database='gcfc-db',
     sslmode='require',
 )
