@@ -12,6 +12,7 @@ from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, validators, FloatField, DateTimeLocalField, TextAreaField
 from forms import SalesQueryForm
 import csv
+import psycopg2
 
 
 app = Flask(__name__)
@@ -20,6 +21,14 @@ app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("DB_URI", "sqlite:///barb
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 
+conn = psycopg2.connect(
+    host='app-c7bb153b-0040-4079-97e0-cb5d69e5a3c0-do-user-1772022-0.d.db.ondigitalocean.com',
+    port='25060',
+    username='gcfc-db',
+    password='AVNS_xRNJdkrcUIWSGsUkdwL',
+    database='gcfc-db',
+    sslmode='require',
+)
 # Initialize extensions
 db.init_app(app)
 Bootstrap(app)
@@ -792,4 +801,4 @@ def inject_now():
 
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=False)
