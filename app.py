@@ -47,7 +47,7 @@ app.config['SESSION_PERMANENT'] = False  # Session ends when browser closes
 def load_user(user_id):
     return User.query.get(int(user_id))
 
-
+# nEW
 # Create tables
 with app.app_context():
     db.create_all()
