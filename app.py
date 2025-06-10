@@ -21,14 +21,7 @@ app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("DB_URI", "sqlite:///barb
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 
-conn = psycopg2.connect(
-    host=os.environ.get('db_host'),
-    port='25060',
-    username='gcfc-db',
-    password=os.environ.get('db_password'),
-    database='gcfc-db',
-    sslmode='require',
-)
+
 # Initialize extensions
 db.init_app(app)
 Bootstrap(app)
@@ -79,6 +72,15 @@ def validate_entry_date(date_str):
         flash("Invalid date format", 'danger')
         return None
 
+# Connect to Postgres DB
+conn = psycopg2.connect(
+    host=os.environ.get('db_host'),
+    port='25060',
+    username=os.environ.get('db_username'),
+    password=os.environ.get('db_password'),
+    database='gcfc-db',
+    sslmode='require',
+)
 
 # Edit Sale Form
 class EditSaleForm(FlaskForm):
