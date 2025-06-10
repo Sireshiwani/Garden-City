@@ -12,7 +12,6 @@ from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, validators, FloatField, DateTimeLocalField, TextAreaField
 from forms import SalesQueryForm
 import csv
-import psycopg2
 
 
 app = Flask(__name__)
@@ -71,7 +70,6 @@ def validate_entry_date(date_str):
     except ValueError:
         flash("Invalid date format", 'danger')
         return None
-
 
 
 # Edit Sale Form
