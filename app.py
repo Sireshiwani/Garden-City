@@ -12,7 +12,7 @@ from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, validators, FloatField, DateTimeLocalField, TextAreaField
 from forms import SalesQueryForm
 import csv
-import psycopg2
+
 
 
 app = Flask(__name__)
@@ -54,14 +54,7 @@ with app.app_context():
     db.create_all()
 
 
-conn = psycopg2.connect(
-    host=os.environ.get('db_host'),
-    port="25060",
-    user="gcfc-db",
-    password=os.environ.get('db_password'),
-    database="gcfc-db",
-    sslmode="require"
-)
+
 
 # Custom filter for currency formatting
 @app.template_filter('currency')
