@@ -12,6 +12,7 @@ from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, validators, FloatField, DateTimeLocalField, TextAreaField
 from forms import SalesQueryForm
 import csv
+import psycopg2
 
 
 app = Flask(__name__)
@@ -49,6 +50,15 @@ def load_user(user_id):
 # Create tables
 with app.app_context():
     db.create_all()
+
+# DB Connection
+conn = psycopg2.connect(
+    dbname = 'barbershop.db',
+    user = 'barbershop.user',
+    password = os.environ.get('db.password'),
+    host = 'localhost',
+    port = '5432'
+)
 
 
 # Custom filter for currency formatting
@@ -101,6 +111,16 @@ def create_first_admin():
         db.session.commit()
 
     return ("Admin Created")
+
+
+@app.route('/')
+def index():
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM your_table")
+    data = cursor.fetchall()
+    cursor.close()
+    return str(data)
+
 
 
 @app.route('/test-db')
