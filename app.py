@@ -14,7 +14,6 @@ from forms import SalesQueryForm
 import csv
 
 
-
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY')
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("DB_URI", "sqlite:///barbershop.db")
@@ -34,7 +33,6 @@ login_manager.init_app(app)
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=3)
 
 
-
 @app.before_request
 def before_request():
     # Reset session timeout on each request
@@ -48,12 +46,9 @@ app.config['SESSION_PERMANENT'] = False  # Session ends when browser closes
 def load_user(user_id):
     return User.query.get(int(user_id))
 
-# nEW
 # Create tables
 with app.app_context():
     db.create_all()
-
-
 
 
 # Custom filter for currency formatting
@@ -61,33 +56,35 @@ with app.app_context():
 def currency_format(value):
     return f"Ksh{value:,.2f}"
 
-
+# Date Validator
 def validate_entry_date(date_str):
     try:
-        entry_date = datetime.strptime(date_str, '%d-%m-%Y')
+        entry_date = datetime.strptime(date_str, '%Y-%m-%d')
         if entry_date > datetime.utcnow():
             flash("Future dates are not allowed", 'danger')
-            return None
-        return entry_date
+            return False
+        else:
+            return entry_date
     except ValueError:
         flash("Invalid date format", 'danger')
-        return None
+        return False
 
 
 # Edit Sale Form
 class EditSaleForm(FlaskForm):
     amount = FloatField('Amount', validators=[validators.InputRequired()])
     category = StringField('Category', validators=[validators.InputRequired()])
-    date = DateTimeLocalField('Date', format='%Y-%m-%dT%H:%M', validators=[validators.InputRequired()])
+    date = DateTimeLocalField('Date', format='%Y-%m-%d', validators=[validators.InputRequired()])
     customer_name = TextAreaField('Customer Name')
 
-
-# Routes
+# Admin Creation Form
 class AdminCreationForm(FlaskForm):
     email = StringField('Email', validators=[validators.DataRequired(), validators.Email()])
     password = PasswordField('Password', validators=[validators.DataRequired(), validators.Length(min=8)])
 
 
+# Routes
+# Admin creator
 @app.route('/create-first-admin', methods=['GET', 'POST'])
 def create_first_admin():
     from models import User, db
@@ -123,7 +120,7 @@ def home():
         if current_user.username == 'Nicole':
             return redirect(url_for('staff_sales_report'))
         return redirect(url_for('my_sales'))
-    return redirect(url_for('login'))
+    return redirect(url_for('login', now=datetime.now()))
 
 
 # Auth routes
@@ -139,7 +136,7 @@ def login():
             flash('Logged in successfully!', 'success')
             return redirect(url_for('home'))
         flash('Invalid email or password', 'danger')
-    return render_template('auth/login.html')
+    return render_template('auth/login.html', now=datetime.now())
 
 
 @app.route('/register', methods=['GET', 'POST'])
@@ -170,7 +167,7 @@ def register():
         flash('User registered successfully!', 'success')
         return redirect(url_for('manage_staff'))
 
-    return render_template('auth/register.html')
+    return render_template('auth/register.html', now=datetime.now())
 
 @app.route('/ping')
 def ping():
@@ -184,7 +181,7 @@ def ping():
 def logout():
     logout_user()
     flash('Logged out successfully', 'success')
-    return redirect(url_for('login'))
+    return redirect(url_for('login', now=datetime.now()))
 
 
 # Sales routes
@@ -197,40 +194,38 @@ def add_sale():
 
 
     all_staff = User.query.all()
-    sale_date = datetime.utcnow().strftime('%Y-%m-%d')
-    # datetime = datetime.utcnow().strftime('%Y-%m-%d')
 
     if request.method == 'POST':
-        try:
-            sale_date = validate_entry_date(datetime.strptime(request.form.get('sale_date'), '%d-%m-%Y'))
-        except ValueError:
-            sale_date = datetime.utcnow()
+        date_str = request.form['sale_date']
+        # sale_date = validate_entry_date(date_str)
+        if validate_entry_date(date_str):
+            amount = float(request.form.get('amount'))
+            category = request.form.get('category')
+            customer_name = request.form.get('notes')
+            staff_name = request.form.get('staff')
+            payment_input = request.form.get('payment')
+            date = datetime.strptime(date_str, '%Y-%m-%d')
+            user = db.one_or_404(db.select(User).filter_by(username=staff_name),
+                                 description=f"No user named '{staff_name}'."
+                                 )
 
-        amount = float(request.form.get('amount'))
-        category = request.form.get('category')
-        customer_name = request.form.get('notes')
-        staff_name = request.form.get('staff')
-        payment_input = request.form.get('payment')
-        date = sale_date
-        user = db.one_or_404(db.select(User).filter_by(username=staff_name),
-                             description=f"No user named '{staff_name}'."
-                             )
+            new_sale = Sale(
+                amount=amount,
+                category=category,
+                staff_id=user.id,
+                customer_name=customer_name,
+                payment_mode=payment_input,
+                date=date
+            )
 
-        new_sale = Sale(
-            amount=amount,
-            category=category,
-            staff_id=user.id,
-            customer_name=customer_name,
-            payment_mode=payment_input,
-            date=date
-        )
-        print(date)
-        db.session.add(new_sale)
-        db.session.commit()
-        flash('Sale recorded successfully!', 'success')
-        return redirect(url_for('add_sale'))
+            db.session.add(new_sale)
+            db.session.commit()
+            flash('Sale recorded successfully!', 'success')
+            return redirect(url_for('add_sale'))
+        else:
+            return redirect(url_for("add_sale"))
 
-    return render_template('transactions/sales.html', all_staff=all_staff, date=sale_date)
+    return render_template('transactions/sales.html', all_staff=all_staff, now=datetime.now())
 
 
 # Expenses routes
@@ -242,11 +237,12 @@ def add_expense():
         return redirect(url_for('home'))
 
 
-    expense_date = datetime.utcnow().strftime('%d-%m-%Y')
+    expense_date = datetime.utcnow().strftime('%Y-%m-%d')
     if request.method == 'POST':
         if request.method == 'POST':
             try:
-                expense_date = validate_entry_date(datetime.strptime(request.form.get('expense_date'), '%d-%m-%Y'))
+                date_str = request.form['expense_date']
+                expense_date = validate_entry_date(date_str)
             except ValueError:
                 expense_date = datetime.utcnow()
 
@@ -265,7 +261,7 @@ def add_expense():
         flash('Expense recorded successfully!', 'success')
         return redirect(url_for('add_expense'))
 
-    return render_template('transactions/expenses.html', date=expense_date)
+    return render_template('transactions/expenses.html', date=expense_date, now=datetime.now())
 
 
 # Admin routes
@@ -277,9 +273,10 @@ def admin_dashboard():
         return redirect(url_for('home'))
 
     # Calculate totals for dashboard
-    today = datetime.utcnow().date()
+    today = datetime.today().date()
     week_ago = today - timedelta(days=7)
-    month_ago = today - timedelta(days=30)
+    date_num = today.strftime("%d")
+    month_ago = today - timedelta(days=int(date_num) - 1)
 
     # Sales data
     total_sales = db.session.query(db.func.sum(Sale.amount)).scalar() or 0
@@ -309,7 +306,8 @@ def admin_dashboard():
                            monthly_sales=monthly_sales,
                            total_expenses=total_expenses,
                            monthly_expenses=monthly_expenses,
-                           staff_performance=staff_performance)
+                           staff_performance=staff_performance,
+                           now=datetime.now())
 
 
 @app.route('/admin/staff')
@@ -320,17 +318,16 @@ def manage_staff():
         return redirect(url_for('home'))
 
     staff_list = User.query.all()
-    return render_template('admin/staff.html', staff_list=staff_list)
+    return render_template('admin/staff.html', staff_list=staff_list, now=datetime.now())
 
 
 @app.route('/my-sales', methods=['GET', 'POST'])
 @login_required
 def my_sales():
     form = SalesQueryForm()
-
-    # Default to last 30 days
-    start_date = datetime.utcnow() - timedelta(days=30)
-    end_date = datetime.utcnow()
+    end_date = datetime.today().date()
+    date_num = end_date.strftime("%d")
+    start_date = end_date - timedelta(days=int(date_num)-1)
 
     if form.validate_on_submit():
         start_date = form.start_date.data
@@ -351,7 +348,8 @@ def my_sales():
                            total_sales=total_sales,
                            form=form,
                            start_date=start_date,
-                           end_date=end_date)
+                           end_date=end_date,
+                           now=datetime.now())
 
 
 @app.route('/export-my-sales')
@@ -388,7 +386,7 @@ def export_my_sales():
     # Write data rows
     for sale in sales:
         writer.writerow([
-            sale.date.strftime('%Y-%m-%d %H:%M'),
+            sale.date.strftime('%Y-%m-%d'),
             sale.amount,
             sale.category,
             sale.notes or ''
@@ -412,7 +410,9 @@ def generate_reports():
         return redirect(url_for('home'))
 
     # Default report - last 30 days sales by category
-    start_date = (datetime.utcnow() - timedelta(days=30)).strftime('%Y-%m-%d')
+    todays_date = datetime.today().date()
+    date_num = todays_date.strftime("%d")
+    start_date = todays_date - timedelta(days=int(date_num)-1)
     end_date = datetime.utcnow().strftime('%Y-%m-%d')
 
     if request.method == 'POST':
@@ -438,7 +438,9 @@ def generate_reports():
                                    report_type=report_type,
                                    results=results,
                                    start_date=start_date,
-                                   end_date=end_date)
+                                   end_date=end_date,
+                                   now=datetime.now()
+                                   )
 
         elif report_type == 'sales_by_staff':
             results = db.session.query(
@@ -454,7 +456,8 @@ def generate_reports():
                                    report_type=report_type,
                                    results=results,
                                    start_date=start_date,
-                                   end_date=end_date)
+                                   end_date=end_date,
+                                   now=datetime.now())
 
         elif report_type == 'expenses_by_category':
             results = db.session.query(
@@ -470,11 +473,14 @@ def generate_reports():
                                    report_type=report_type,
                                    results=results,
                                    start_date=start_date,
-                                   end_date=end_date)
+                                   end_date=end_date,
+                                   now=datetime.now())
 
     return render_template('admin/reports.html',
                            start_date=start_date,
-                           end_date=end_date)
+                           end_date=end_date,
+                           now=datetime.now()
+                           )
 
 
 @app.route('/admin/reports/export')
@@ -567,7 +573,7 @@ def edit_sale(sale_id):
             db.session.rollback()
             flash(f'Error updating sale: {str(e)}', 'danger')
 
-    return render_template('admin/edit_sale.html', form=form, sale=sale)
+    return render_template('admin/edit_sale.html', form=form, sale=sale, now=datetime.now())
 
 
 @app.route('/admin/delete-sale/<int:sale_id>', methods=['POST'])
@@ -580,7 +586,7 @@ def delete_sale(sale_id):
     db.session.delete(sale)
     db.session.commit()
     flash('Sale deleted successfully', 'success')
-    return redirect(url_for('staff_sales_report'))
+    return redirect(url_for('staff_sales_report'), now=datetime.now())
 
 
 @app.route('/admin/staff/<int:staff_id>')
@@ -591,7 +597,7 @@ def view_staff(staff_id):
         return redirect(url_for('home'))
 
     staff = User.query.get_or_404(staff_id)
-    return render_template('admin/view_staff.html', staff=staff)
+    return render_template('admin/view_staff.html', staff=staff, now=datetime.now())
 
 
 @app.route('/admin/staff/<int:staff_id>/delete', methods=['POST'])
@@ -642,7 +648,7 @@ def edit_staff(staff_id):
         flash('Staff updated successfully!', 'success')
         return redirect(url_for('view_staff', staff_id=staff.id))
 
-    return render_template('admin/edit_staff.html', staff=staff)
+    return render_template('admin/edit_staff.html', staff=staff, now=datetime.now())
 
 
 @app.route('/admin/reports/staff-sales', methods=['GET', 'POST'])
@@ -654,8 +660,9 @@ def staff_sales_report():
 
 
     # Default to last 30 days
-    end_date = datetime.utcnow()
-    start_date = end_date - timedelta(days=30)
+    end_date = datetime.today().date()
+    date_num = end_date.strftime("%d")
+    start_date = end_date - timedelta(days=int(date_num)-1)
 
     # Dates for edit/delete
     edit_end_date = end_date - timedelta(days=3)
@@ -694,10 +701,11 @@ def staff_sales_report():
                            results=results,
                            total_sales=total_sales,
                            staff_list=staff_list,
-                           start_date=start_date.date(),
-                           end_date=end_date.date(),
+                           start_date=start_date,
+                           end_date=end_date,
                            selected_staff=request.form.get('staff_id', 'all'),
-                           edit_end_date=edit_end_date)
+                           edit_end_date=edit_end_date,
+                           now=datetime.now())
 
 
 @app.route('/admin/reports/export-staff-sales')
@@ -730,7 +738,7 @@ def export_staff_sales():
     # Create DataFrame
     df = pd.DataFrame([(
         r.Staff,
-        r.Date.strftime('%d-%B-%Y %H:%M'),
+        r.Date.strftime('%Y-%m-%d'),
         r.Amount,
         r.Category,
         r.Customer or ''
@@ -763,7 +771,7 @@ def export_staff_sales():
         worksheet.set_column('C:C', 12, money_format)
 
         # Format dates
-        date_format = workbook.add_format({'num_format': 'yyyy-mm-dd hh:mm'})
+        date_format = workbook.add_format({'num_format': '%Y-%m-%d'})
         worksheet.set_column('B:B', 18, date_format)
 
         # Auto-adjust columns
@@ -787,11 +795,6 @@ def export_staff_sales():
 
 def get_col_widths(df):
     return [max([len(str(s)) for s in df[col].values] + [len(str(col))]) for col in df.columns]
-
-
-@app.context_processor
-def inject_now():
-    return {'now': datetime.utcnow()}
 
 
 if __name__ == '__main__':

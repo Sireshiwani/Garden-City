@@ -1,0 +1,49 @@
+import sqlite3
+
+
+def migrate_db():
+    conn = sqlite3.connect('private_notebook.db')
+    c = conn.cursor()
+
+    try:
+        # Check if email column exists
+        c.execute("PRAGMA table_info(users)")
+        columns = [column[1] for column in c.fetchall()]
+
+        if 'email' not in columns:
+            # SQLite doesn't support DROP COLUMN directly, so we need to recreate the table
+            c.execute('''
+                CREATE TABLE IF NOT EXISTS users_new
+                (id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username TEXT UNIQUE NOT NULL,
+                password TEXT NOT NULL,
+                email TEXT,
+                full_name TEXT NOT NULL,
+                role TEXT NOT NULL,
+                is_active BOOLEAN DEFAULT 1,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP)
+            ''')
+
+            # Copy data from old table
+            c.execute('''
+                INSERT INTO users_new (id, username, password, full_name, role, is_active, created_at)
+                SELECT id, username, password, full_name, role, is_active, created_at FROM users
+            ''')
+
+            # Replace old table with new one
+            c.execute('DROP TABLE users')
+            c.execute('ALTER TABLE users_new RENAME TO users')
+
+            conn.commit()
+            print("Database migrated successfully")
+        else:
+            print("Database already up to date")
+    except Exception as e:
+        print(f"Migration failed: {e}")
+        conn.rollback()
+    finally:
+        conn.close()
+
+
+# Call this at startup
+migrate_db()

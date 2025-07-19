@@ -41,6 +41,10 @@
                             </li>
 
                         {% elif not current_user.is_admin and current_user.id == 3 %}
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ url_for('home') }}">Home</a>
+                             </li>
+
                              <li class="nav-item">
                                 <a class="nav-link" href="{{ url_for('add_sale') }}">Add Sale</a>
                              </li>

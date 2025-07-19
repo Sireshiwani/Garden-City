@@ -23,7 +23,7 @@ class Sale(db.Model):
     amount = db.Column(db.Float, nullable=False)
     category = db.Column(db.String(50), nullable=False)  # e.g., haircut, shave, coloring
     staff_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    date = db.Column(db.DateTime, nullable=False)
+    date = db.Column(db.Date, nullable=False)
     customer_name = db.Column(db.Text, nullable=True)
     payment_mode = db.Column(db.String(50), nullable=False)
 
