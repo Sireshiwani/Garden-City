@@ -52,13 +52,13 @@ with app.app_context():
     db.create_all()
 
 # DB Connection
-conn = psycopg2.connect(
-    dbname = 'barbershop_',
-    user = 'barbershop_user',
-    password = 'Fgjdkk%&^&*455677%^',
-    host = 'localhost',
-    port = '5432'
-)
+# conn = psycopg2.connect(
+#     dbname = 'barbershop_',
+#     user = 'barbershop_user',
+#     password = 'Fgjdkk%&^&*455677%^',
+#     host = 'localhost',
+#     port = '5432'
+# )
 
 
 # Custom filter for currency formatting
