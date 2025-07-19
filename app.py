@@ -55,7 +55,7 @@ with app.app_context():
 conn = psycopg2.connect(
     dbname = 'barbershop.db',
     user = 'barbershop.user',
-    password = os.environ.get('db.password'),
+    password = os.environ.get('db_password'),
     host = 'localhost',
     port = '5432'
 )
