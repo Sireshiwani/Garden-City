@@ -53,8 +53,8 @@ with app.app_context():
 
 # DB Connection
 conn = psycopg2.connect(
-    dbname = 'barbershop.db',
-    user = 'barbershop.user',
+    dbname = 'barbershop_',
+    user = 'barbershop_user',
     password = 'Fgjdkk%&^&*455677%^',
     host = 'localhost',
     port = '5432'
