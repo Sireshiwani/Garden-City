@@ -12,7 +12,7 @@ from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, validators, FloatField, DateTimeLocalField, TextAreaField
 from forms import SalesQueryForm
 import csv
-import psycopg2
+from flask_migrate import Migrate
 
 
 app = Flask(__name__)
@@ -51,6 +51,8 @@ def load_user(user_id):
 with app.app_context():
     db.create_all()
 
+# migrate db
+migrate = Migrate(app, db)
 
 
 # Custom filter for currency formatting
