@@ -17,7 +17,7 @@ import psycopg2
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY')
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("DB_URI", "sqlite:///barbershop.db")
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("DATABASE_URL", "sqlite:///barbershop.db")
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 
@@ -51,14 +51,6 @@ def load_user(user_id):
 with app.app_context():
     db.create_all()
 
-# DB Connection
-# conn = psycopg2.connect(
-#     dbname = 'barbershop_',
-#     user = 'barbershop_user',
-#     password = 'Fgjdkk%&^&*455677%^',
-#     host = 'localhost',
-#     port = '5432'
-# )
 
 
 # Custom filter for currency formatting
