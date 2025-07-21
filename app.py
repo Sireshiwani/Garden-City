@@ -105,15 +105,6 @@ def create_first_admin():
     return ("Admin Created")
 
 
-@app.route('/')
-def index():
-    cursor = conn.cursor()
-    cursor.execute("SELECT * FROM your_table")
-    data = cursor.fetchall()
-    cursor.close()
-    return str(data)
-
-
 
 @app.route('/test-db')
 def test_db():
